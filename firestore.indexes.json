@@ -1,0 +1,31 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "vendas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "baixada", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vendas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "baixada", "order": "ASCENDING" },
+        { "fieldPath": "tipoPagamento", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pessoas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "nomeBusca", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
