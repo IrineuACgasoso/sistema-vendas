@@ -36,6 +36,8 @@ export async function login(formData: FormData): Promise<ActionResult> {
 
   const usuarioEsperado = process.env.AUTH_USER;
   const hashEsperado = process.env.AUTH_PASSWORD_HASH;
+  console.log("DEBUG AUTH_USER:", JSON.stringify(process.env.AUTH_USER));
+  console.log("DEBUG HASH:", JSON.stringify(process.env.AUTH_PASSWORD_HASH));
 
   if (!usuarioEsperado || !hashEsperado) {
     // Erro de configuração do servidor, não vaza detalhe pro cliente

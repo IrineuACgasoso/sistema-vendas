@@ -10,6 +10,7 @@ import bcrypt from "bcryptjs";
 export async function verificarSenha(
   senhaDigitada: string,
   hashArmazenado: string
+  
 ): Promise<boolean> {
   if (!senhaDigitada || !hashArmazenado) return false;
   try {
