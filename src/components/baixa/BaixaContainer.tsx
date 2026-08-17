@@ -45,12 +45,15 @@ export default function BaixaContainer() {
         : undefined;
 
     setCarregando(true);
-    const resultado = await listarVendas({
-      dataInicio,
-      dataFim,
-      nome: nomeDebounced || undefined,
-      tipoPagamento: filtros.tipoPagamento || undefined,
-    });
+    const resultado = await listarVendas(
+      {
+        dataInicio,
+        dataFim,
+        nome: nomeDebounced || undefined,
+        tipoPagamento: filtros.tipoPagamento || undefined,
+      },
+      "baixa"
+    );
     setCarregando(false);
 
     if (!resultado.ok || !resultado.data) {

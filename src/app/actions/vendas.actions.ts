@@ -2,11 +2,23 @@
 
 import { db, COLLECTIONS } from "@/lib/firebase/admin";
 import { obterSessaoAtual } from "@/lib/auth/session";
-import { novaVendaSchema, filtrosBaixaSchema, darBaixaSchema } from "@/lib/validation/schemas";
+import {
+  novaVendaSchema,
+  filtrosBaixaSchema,
+  darBaixaSchema,
+  fecharVendasSchema,
+  adicionarNumeroVendaSchema,
+} from "@/lib/validation/schemas";
 import { verificarSenha } from "@/lib/auth/password";
 import { brDateToIso } from "@/lib/utils/date";
 import { salvarPessoaSeNova } from "./pessoas.actions";
-import type { ActionResult, FiltrosBaixaInput, NovaVendaInput, Venda } from "@/types";
+import type {
+  ActionResult,
+  FiltrosBaixaInput,
+  ModoListagemVendas,
+  NovaVendaInput,
+  Venda,
+} from "@/types";
 import type { Query, DocumentData } from "firebase-admin/firestore";
 
 async function exigirSessao(): Promise<void> {
@@ -63,6 +75,8 @@ export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ 
       data: dataIso,
       vendaConsig: dados.vendaConsig?.trim() || null,
       valorCentavos: dados.valorCentavos,
+      fechada: false,
+      fechadaEm: null,
       baixada: false,
       baixadaEm: null,
       criadoEm: new Date().toISOString(),
@@ -75,7 +89,10 @@ export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ 
   }
 }
 
-export async function listarVendas(filtros: FiltrosBaixaInput): Promise<ActionResult<Venda[]>> {
+export async function listarVendas(
+  filtros: FiltrosBaixaInput,
+  modo: ModoListagemVendas = "vendas"
+): Promise<ActionResult<Venda[]>> {
   try {
     await exigirSessao();
 
@@ -85,10 +102,15 @@ export async function listarVendas(filtros: FiltrosBaixaInput): Promise<ActionRe
     }
     const f = parsed.data;
 
-    // Só mostra vendas não baixadas na tela de Baixa
-    let query: Query<DocumentData> = db
-      .collection(COLLECTIONS.VENDAS)
-      .where("baixada", "==", false);
+    let query: Query<DocumentData> = db.collection(COLLECTIONS.VENDAS);
+
+    // Regra de negócio central: a tela de Baixa só pode enxergar vendas que já
+    // foram fechadas (ou seja, que já têm número de venda confirmado) e que
+    // ainda não foram baixadas. A tela de Vendas enxerga tudo — inclusive o que
+    // ainda não tem número e/ou não foi fechado — pois é ali que isso é resolvido.
+    if (modo === "baixa") {
+      query = query.where("fechada", "==", true).where("baixada", "==", false);
+    }
 
     if (f.dataInicio) {
       query = query.where("data", ">=", f.dataInicio);
@@ -116,6 +138,8 @@ export async function listarVendas(filtros: FiltrosBaixaInput): Promise<ActionRe
         data: data.data,
         vendaConsig: data.vendaConsig ?? null,
         valorCentavos: data.valorCentavos,
+        fechada: data.fechada ?? false,
+        fechadaEm: data.fechadaEm ?? null,
         baixada: data.baixada,
         baixadaEm: data.baixadaEm ?? null,
         criadoEm: data.criadoEm,
@@ -188,5 +212,99 @@ export async function darBaixa(
   } catch (error) {
     console.error("Erro ao dar baixa:", error);
     return { ok: false, message: "Não foi possível concluir a baixa." };
+  }
+}
+
+/**
+ * "Fechar Caixa": marca as vendas selecionadas como fechada = true.
+ * Só a partir daí elas passam a aparecer na tela de Baixa.
+ * Exige que cada venda selecionada já tenha vendaConsig (número da venda)
+ * preenchido — o client já deve impedir a seleção de vendas sem número,
+ * mas a validação aqui é a que garante a regra de verdade.
+ */
+export async function fecharVendas(vendaIds: string[]): Promise<ActionResult> {
+  try {
+    await exigirSessao();
+
+    const parsed = fecharVendasSchema.safeParse({ vendaIds });
+    if (!parsed.success) {
+      const primeiroErro = parsed.error.issues[0]?.message ?? "Dados inválidos.";
+      return { ok: false, message: primeiroErro };
+    }
+
+    const refs = parsed.data.vendaIds.map((id) => db.collection(COLLECTIONS.VENDAS).doc(id));
+    const snapshots = await db.getAll(...refs);
+
+    for (const snap of snapshots) {
+      if (!snap.exists) {
+        return { ok: false, message: "Uma das vendas selecionadas não existe mais." };
+      }
+      const data = snap.data()!;
+      if (!data.vendaConsig || !String(data.vendaConsig).trim()) {
+        return {
+          ok: false,
+          message: `A venda de ${data.pagtNome} ainda não tem número de venda. Adicione o número antes de fechar.`,
+        };
+      }
+      if (data.fechada === true) {
+        return { ok: false, message: `A venda de ${data.pagtNome} já está fechada.` };
+      }
+    }
+
+    const LIMITE_LOTE = 400;
+    if (parsed.data.vendaIds.length > LIMITE_LOTE) {
+      return { ok: false, message: `Selecione no máximo ${LIMITE_LOTE} vendas por vez.` };
+    }
+
+    const batch = db.batch();
+    const agora = new Date().toISOString();
+    for (const ref of refs) {
+      batch.update(ref, { fechada: true, fechadaEm: agora });
+    }
+    await batch.commit();
+
+    return {
+      ok: true,
+      message: `${parsed.data.vendaIds.length} venda(s) fechada(s) com sucesso. Já estão disponíveis para Baixa.`,
+    };
+  } catch (error) {
+    console.error("Erro ao fechar vendas:", error);
+    return { ok: false, message: "Não foi possível fechar as vendas selecionadas." };
+  }
+}
+
+/**
+ * Preenche o número da venda (vendaConsig) quando ele é descoberto depois
+ * do cadastro original. Só permitido enquanto a venda ainda não foi fechada.
+ */
+export async function adicionarNumeroVenda(
+  vendaId: string,
+  vendaConsig: string
+): Promise<ActionResult> {
+  try {
+    await exigirSessao();
+
+    const parsed = adicionarNumeroVendaSchema.safeParse({ vendaId, vendaConsig });
+    if (!parsed.success) {
+      const primeiroErro = parsed.error.issues[0]?.message ?? "Dados inválidos.";
+      return { ok: false, message: primeiroErro };
+    }
+
+    const ref = db.collection(COLLECTIONS.VENDAS).doc(parsed.data.vendaId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      return { ok: false, message: "Venda não encontrada." };
+    }
+    const data = snap.data()!;
+    if (data.fechada === true) {
+      return { ok: false, message: "Esta venda já está fechada e não pode ser alterada." };
+    }
+
+    await ref.update({ vendaConsig: parsed.data.vendaConsig });
+
+    return { ok: true, message: "Número da venda adicionado com sucesso." };
+  } catch (error) {
+    console.error("Erro ao adicionar número da venda:", error);
+    return { ok: false, message: "Não foi possível adicionar o número da venda." };
   }
 }

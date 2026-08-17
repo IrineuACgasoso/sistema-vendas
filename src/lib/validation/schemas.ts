@@ -36,7 +36,18 @@ export const darBaixaSchema = z.object({
   senhaConfirmacao: z.string().min(1, "Senha obrigatória para confirmar"),
 });
 
+export const fecharVendasSchema = z.object({
+  vendaIds: z.array(z.string().min(1)).min(1, "Selecione ao menos uma venda"),
+});
+
+export const adicionarNumeroVendaSchema = z.object({
+  vendaId: z.string().min(1),
+  vendaConsig: z.string().trim().min(1, "Informe o número da venda").max(100),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type NovaVendaFormInput = z.infer<typeof novaVendaSchema>;
 export type FiltrosBaixaFormInput = z.infer<typeof filtrosBaixaSchema>;
 export type DarBaixaInput = z.infer<typeof darBaixaSchema>;
+export type FecharVendasInput = z.infer<typeof fecharVendasSchema>;
+export type AdicionarNumeroVendaInput = z.infer<typeof adicionarNumeroVendaSchema>;

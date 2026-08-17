@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import RadioOption from "@/components/ui/RadioOption";
 import { logout } from "@/app/actions/auth.actions";
 
-type Opcao = "cadastro" | "baixa";
+type Opcao = "cadastro" | "vendas" | "baixa";
 
 export default function MenuSelector() {
   const router = useRouter();
@@ -34,6 +34,13 @@ export default function MenuSelector() {
           name="opcao-menu"
           value="cadastro"
           checked={opcao === "cadastro"}
+          onChange={(v) => setOpcao(v as Opcao)}
+        />
+        <RadioOption
+          label="Vendas"
+          name="opcao-menu"
+          value="vendas"
+          checked={opcao === "vendas"}
           onChange={(v) => setOpcao(v as Opcao)}
         />
         <RadioOption

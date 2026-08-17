@@ -4,6 +4,7 @@
       "collectionGroup": "vendas",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "fechada", "order": "ASCENDING" },
         { "fieldPath": "baixada", "order": "ASCENDING" },
         { "fieldPath": "data", "order": "ASCENDING" },
         { "fieldPath": "criadoEm", "order": "ASCENDING" }
@@ -13,6 +14,7 @@
       "collectionGroup": "vendas",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "fechada", "order": "ASCENDING" },
         { "fieldPath": "baixada", "order": "ASCENDING" },
         { "fieldPath": "tipoPagamento", "order": "ASCENDING" },
         { "fieldPath": "data", "order": "ASCENDING" },
@@ -20,10 +22,20 @@
       ]
     },
     {
-      "collectionGroup": "pessoas",
+      "collectionGroup": "vendas",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "nomeBusca", "order": "ASCENDING" }
+        { "fieldPath": "data", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vendas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipoPagamento", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
       ]
     }
   ],

@@ -15,12 +15,19 @@ export interface Venda {
   clienteNome: string | null;
   clienteNomeId: string | null;
   data: string; // ISO string (yyyy-mm-dd)
-  vendaConsig: string | null;
+  vendaConsig: string | null; // número da venda/consignação — pode ser preenchido depois
   valorCentavos: number;
-  baixada: boolean;
+  fechada: boolean; // true somente depois de "Fechar Caixa" (exige vendaConsig preenchido)
+  fechadaEm: string | null;
+  baixada: boolean; // só pode ser true se fechada === true
   baixadaEm: string | null;
   criadoEm: string;
 }
+
+// Modo de listagem: define quais vendas cada tela pode ver.
+// "vendas": mostra tudo (é a tela de consulta/edição, incluindo vendas sem número e não fechadas).
+// "baixa": mostra somente vendas fechada === true && baixada === false.
+export type ModoListagemVendas = "vendas" | "baixa";
 
 export interface NovaVendaInput {
   tipoPagamento: TipoPagamento;
