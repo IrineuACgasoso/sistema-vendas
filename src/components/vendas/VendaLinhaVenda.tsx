@@ -3,6 +3,7 @@
 import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { centavosToDisplay } from "@/lib/utils/currency";
+import { isoDateToBr } from "@/lib/utils/date";
 import type { Venda } from "@/types";
 
 interface VendaLinhaVendaProps {
@@ -10,6 +11,7 @@ interface VendaLinhaVendaProps {
   selecionada: boolean;
   onToggle: (id: string, checked: boolean) => void;
   onAdicionarNumero: (venda: Venda) => void;
+  mostrarData?: boolean;
 }
 
 const LABEL_TIPO: Record<Venda["tipoPagamento"], string> = {
@@ -23,6 +25,7 @@ export default function VendaLinhaVenda({
   selecionada,
   onToggle,
   onAdicionarNumero,
+  mostrarData,
 }: VendaLinhaVendaProps) {
   const temNumero = !!venda.vendaConsig;
 
@@ -47,12 +50,15 @@ export default function VendaLinhaVenda({
         {venda.clienteNome && (
           <span className="text-gray-500 truncate">{venda.clienteNome}</span>
         )}
+        {mostrarData && (
+          <span className="text-xs text-gray-400 whitespace-nowrap">{isoDateToBr(venda.data)}</span>
+        )}
         <span className="text-xs text-gray-400 uppercase whitespace-nowrap">
           {LABEL_TIPO[venda.tipoPagamento]}
         </span>
 
         {temNumero ? (
-          <span className="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-0.5 rounded whitespace-nowrap">
+          <span className="text-base font-bold font-mono text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded whitespace-nowrap">
             Nº {venda.vendaConsig}
           </span>
         ) : (

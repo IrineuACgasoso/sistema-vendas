@@ -11,6 +11,7 @@ import { listarVendas, fecharVendas, adicionarNumeroVenda } from "@/app/actions/
 import { brDateToIso, isValidBrDate } from "@/lib/utils/date";
 import { centavosToDisplay } from "@/lib/utils/currency";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { ordenarVendas } from "@/lib/utils/ordenarVendas";
 import type { Venda } from "@/types";
 
 const FILTROS_INICIAIS: FiltrosState = {
@@ -18,6 +19,8 @@ const FILTROS_INICIAIS: FiltrosState = {
   dataFimBr: "",
   nome: "",
   tipoPagamento: "",
+  ordenarPor: "data",
+  ordenarDirecao: "asc",
 };
 
 export default function VendasContainer() {
@@ -90,6 +93,11 @@ export default function VendasContainer() {
       .reduce((soma, v) => soma + v.valorCentavos, 0);
   }, [vendas, selecionadas]);
 
+  const vendasOrdenadas = useMemo(
+    () => ordenarVendas(vendas, filtros.ordenarPor, filtros.ordenarDirecao),
+    [vendas, filtros.ordenarPor, filtros.ordenarDirecao]
+  );
+
   async function handleFecharCaixa() {
     const confirmou = window.confirm(
       `Confirma fechar ${selecionadas.size} venda(s), totalizando ${centavosToDisplay(
@@ -154,10 +162,11 @@ export default function VendasContainer() {
         </div>
       ) : (
         <VendasPorDataVenda
-          vendas={vendas}
+          vendas={vendasOrdenadas}
           selecionadas={selecionadas}
           onToggle={handleToggleVenda}
           onAdicionarNumero={(venda) => setVendaParaNumero(venda)}
+          ordenarPor={filtros.ordenarPor}
         />
       )}
 

@@ -28,6 +28,27 @@ async function exigirSessao(): Promise<void> {
   }
 }
 
+/**
+ * Garante que nenhuma outra venda já use o mesmo número (vendaConsig).
+ * `ignorarVendaId` permite reaplicar a mesma checagem numa venda já existente
+ * (ex: reenviar o mesmo número que ela já tinha) sem falso-positivo.
+ */
+async function existeVendaComMesmoNumero(
+  vendaConsig: string,
+  ignorarVendaId?: string
+): Promise<boolean> {
+  const numero = vendaConsig.trim();
+  if (!numero) return false;
+
+  const snapshot = await db
+    .collection(COLLECTIONS.VENDAS)
+    .where("vendaConsig", "==", numero)
+    .limit(5)
+    .get();
+
+  return snapshot.docs.some((doc) => doc.id !== ignorarVendaId);
+}
+
 export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ id: string }>> {
   try {
     await exigirSessao();
@@ -48,6 +69,15 @@ export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ 
 
     const dados = parsed.data;
     const dataIso = brDateToIso(dados.data);
+
+    if (dados.vendaConsig && dados.vendaConsig.trim()) {
+      if (await existeVendaComMesmoNumero(dados.vendaConsig)) {
+        return {
+          ok: false,
+          message: `Já existe uma venda com o número "${dados.vendaConsig.trim()}".`,
+        };
+      }
+    }
 
     // Salva/recupera pagante (obrigatório)
     const pagtResultado = await salvarPessoaSeNova(dados.pagtNome);
@@ -105,11 +135,12 @@ export async function listarVendas(
     let query: Query<DocumentData> = db.collection(COLLECTIONS.VENDAS);
 
     // Regra de negócio central: a tela de Baixa só pode enxergar vendas que já
-    // foram fechadas (ou seja, que já têm número de venda confirmado) e que
-    // ainda não foram baixadas. A tela de Vendas enxerga tudo — inclusive o que
-    // ainda não tem número e/ou não foi fechado — pois é ali que isso é resolvido.
+    // foram fechadas (ou seja, que já têm número de venda confirmado). Uma vez
+    // que uma venda recebe baixa, o documento é apagado do banco (ver darBaixa),
+    // então não é mais necessário filtrar por "baixada". A tela de Vendas
+    // enxerga tudo — abertas e fechadas — pois é ali que isso é resolvido.
     if (modo === "baixa") {
-      query = query.where("fechada", "==", true).where("baixada", "==", false);
+      query = query.where("fechada", "==", true);
     }
 
     if (f.dataInicio) {
@@ -198,17 +229,18 @@ export async function darBaixa(
       };
     }
 
+    // Dar baixa remove a venda definitivamente do banco: não há necessidade de
+    // manter histórico de vendas já baixadas neste sistema.
     const batch = db.batch();
-    const agora = new Date().toISOString();
 
     for (const id of parsed.data.vendaIds) {
       const ref = db.collection(COLLECTIONS.VENDAS).doc(id);
-      batch.update(ref, { baixada: true, baixadaEm: agora });
+      batch.delete(ref);
     }
 
     await batch.commit();
 
-    return { ok: true, message: `${parsed.data.vendaIds.length} venda(s) baixada(s) com sucesso.` };
+    return { ok: true, message: `${parsed.data.vendaIds.length} venda(s) baixada(s) e removida(s) com sucesso.` };
   } catch (error) {
     console.error("Erro ao dar baixa:", error);
     return { ok: false, message: "Não foi possível concluir a baixa." };
@@ -298,6 +330,13 @@ export async function adicionarNumeroVenda(
     const data = snap.data()!;
     if (data.fechada === true) {
       return { ok: false, message: "Esta venda já está fechada e não pode ser alterada." };
+    }
+
+    if (await existeVendaComMesmoNumero(parsed.data.vendaConsig, parsed.data.vendaId)) {
+      return {
+        ok: false,
+        message: `Já existe uma venda com o número "${parsed.data.vendaConsig}".`,
+      };
     }
 
     await ref.update({ vendaConsig: parsed.data.vendaConsig });

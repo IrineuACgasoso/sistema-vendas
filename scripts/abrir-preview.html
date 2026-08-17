@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Abrir Sistema de Vendas (janela pop-up)</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 480px; margin: 60px auto; padding: 0 20px; color: #1f2937; }
+  h1 { font-size: 18px; }
+  input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; margin: 8px 0 16px; }
+  button { background: #2563eb; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  p.hint { font-size: 12px; color: #6b7280; }
+</style>
+</head>
+<body>
+  <h1>Abrir o Sistema de Vendas em uma janela pequena</h1>
+  <p class="hint">
+    Cole aqui a URL do seu deploy na Vercel (ex: https://sistema-vendas.vercel.app).
+    A URL fica salva no seu navegador para as próximas vezes.
+  </p>
+  <input id="url" type="url" placeholder="https://seu-projeto.vercel.app" />
+  <button onclick="abrir()">Abrir em pop-up</button>
+
+  <script>
+    const input = document.getElementById('url');
+    input.value = localStorage.getItem('sistema-vendas-url') || '';
+
+    function abrir() {
+      const url = input.value.trim();
+      if (!url) { input.focus(); return; }
+      localStorage.setItem('sistema-vendas-url', url);
+
+      const largura = 480;
+      const altura = 720;
+      const esquerda = (screen.width - largura) / 2;
+      const topo = (screen.height - altura) / 2;
+
+      window.open(
+        url,
+        'sistema-vendas-preview',
+        `popup=yes,width=${largura},height=${altura},left=${esquerda},top=${topo},resizable=yes,scrollbars=yes`
+      );
+    }
+  </script>
+</body>
+</html>

@@ -12,6 +12,7 @@ import { confirmarSenhaAtual } from "@/app/actions/auth.actions";
 import { brDateToIso, isValidBrDate } from "@/lib/utils/date";
 import { centavosToDisplay } from "@/lib/utils/currency";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { ordenarVendas } from "@/lib/utils/ordenarVendas";
 import type { Venda } from "@/types";
 
 const FILTROS_INICIAIS: FiltrosState = {
@@ -19,6 +20,8 @@ const FILTROS_INICIAIS: FiltrosState = {
   dataFimBr: "",
   nome: "",
   tipoPagamento: "",
+  ordenarPor: "data",
+  ordenarDirecao: "asc",
 };
 
 export default function BaixaContainer() {
@@ -92,6 +95,11 @@ export default function BaixaContainer() {
       .reduce((soma, v) => soma + v.valorCentavos, 0);
   }, [vendas, selecionadas]);
 
+  const vendasOrdenadas = useMemo(
+    () => ordenarVendas(vendas, filtros.ordenarPor, filtros.ordenarDirecao),
+    [vendas, filtros.ordenarPor, filtros.ordenarDirecao]
+  );
+
   function handleAbrirConfirmacao() {
     const confirmouPrimeiraEtapa = window.confirm(
       `Confirma dar baixa em ${selecionadas.size} venda(s), totalizando ${centavosToDisplay(
@@ -141,9 +149,10 @@ export default function BaixaContainer() {
         </div>
       ) : (
         <VendasPorData
-          vendas={vendas}
+          vendas={vendasOrdenadas}
           selecionadas={selecionadas}
           onToggle={handleToggleVenda}
+          ordenarPor={filtros.ordenarPor}
         />
       )}
 

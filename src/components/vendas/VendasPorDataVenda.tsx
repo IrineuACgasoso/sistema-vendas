@@ -2,6 +2,7 @@
 
 import VendaLinhaVenda from "./VendaLinhaVenda";
 import { isoDateToBr } from "@/lib/utils/date";
+import type { OrdenarPor } from "@/components/baixa/FiltrosBaixa";
 import type { Venda } from "@/types";
 
 interface VendasPorDataVendaProps {
@@ -9,6 +10,7 @@ interface VendasPorDataVendaProps {
   selecionadas: Set<string>;
   onToggle: (id: string, checked: boolean) => void;
   onAdicionarNumero: (venda: Venda) => void;
+  ordenarPor: OrdenarPor;
 }
 
 export default function VendasPorDataVenda({
@@ -16,12 +18,30 @@ export default function VendasPorDataVenda({
   selecionadas,
   onToggle,
   onAdicionarNumero,
+  ordenarPor,
 }: VendasPorDataVendaProps) {
   if (vendas.length === 0) {
     return (
       <p className="text-center text-sm text-gray-500 py-8">
         Nenhuma venda encontrada com os filtros atuais.
       </p>
+    );
+  }
+
+  if (ordenarPor === "numero") {
+    return (
+      <section className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {vendas.map((venda) => (
+          <VendaLinhaVenda
+            key={venda.id}
+            venda={venda}
+            selecionada={selecionadas.has(venda.id)}
+            onToggle={onToggle}
+            onAdicionarNumero={onAdicionarNumero}
+            mostrarData
+          />
+        ))}
+      </section>
     );
   }
 
