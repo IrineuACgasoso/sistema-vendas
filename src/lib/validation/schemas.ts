@@ -11,6 +11,7 @@ export const brDateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
 
 export const novaVendaSchema = z.object({
   tipoPagamento: tipoPagamentoSchema,
+  promissoria: z.boolean().default(false),
   pagtNome: z.string().trim().min(1, "Informe o nome do pagante").max(200),
   clienteNome: z.string().trim().max(200).optional().or(z.literal("")),
   data: z

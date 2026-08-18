@@ -10,6 +10,7 @@ export interface Pessoa {
 export interface Venda {
   id: string;
   tipoPagamento: TipoPagamento;
+  promissoria: boolean; // independente do tipoPagamento: "Promissória (Pix)", "Promissória (Depósito)", etc.
   pagtNome: string;
   pagtNomeId: string | null;
   clienteNome: string | null;
@@ -31,6 +32,7 @@ export type ModoListagemVendas = "vendas" | "baixa";
 
 export interface NovaVendaInput {
   tipoPagamento: TipoPagamento;
+  promissoria?: boolean;
   pagtNome: string;
   clienteNome?: string;
   data: string; // dd/mm/aaaa vindo do form

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import TipoPagamentoRadio from "./TipoPagamentoRadio";
+import PromissoriaSelect from "./PromissoriaSelect";
 import NomeAutocomplete from "./NomeAutocomplete";
 import DateInput from "@/components/ui/DateInput";
 import TextInput from "@/components/ui/TextInput";
@@ -17,6 +18,7 @@ const CAMPOS_ORDEM = ["pagtNome", "cliente", "data", "vendaConsig", "valor"];
 
 const ESTADO_INICIAL = {
   tipoPagamento: "pix" as TipoPagamento,
+  promissoria: false,
   pagtNome: "",
   clienteNome: "",
   data: todayBr(),
@@ -37,6 +39,7 @@ export default function CadastroForm() {
     setForm((prev) => ({
       ...ESTADO_INICIAL,
       tipoPagamento: prev.tipoPagamento,
+      promissoria: prev.promissoria,
       data: prev.data,
     }));
     setTimeout(() => flow.focarCampo("pagtNome"), 0);
@@ -65,6 +68,7 @@ export default function CadastroForm() {
     startTransition(async () => {
       const resultado = await criarVenda({
         tipoPagamento: form.tipoPagamento,
+        promissoria: form.promissoria,
         pagtNome: form.pagtNome,
         clienteNome: form.clienteNome || undefined,
         data: form.data,
@@ -91,10 +95,20 @@ export default function CadastroForm() {
       <h2 className="text-lg font-semibold mb-6 text-center">Cadastro de Venda</h2>
 
       <div className="flex flex-col gap-4">
-        <TipoPagamentoRadio
-          value={form.tipoPagamento}
-          onChange={(v) => setForm((prev) => ({ ...prev, tipoPagamento: v }))}
-        />
+        <div className="flex items-end gap-4">
+          <div className="w-36 flex-shrink-0">
+            <PromissoriaSelect
+              value={form.promissoria}
+              onChange={(v) => setForm((prev) => ({ ...prev, promissoria: v }))}
+            />
+          </div>
+          <div className="flex-1">
+            <TipoPagamentoRadio
+              value={form.tipoPagamento}
+              onChange={(v) => setForm((prev) => ({ ...prev, tipoPagamento: v }))}
+            />
+          </div>
+        </div>
 
         <NomeAutocomplete
           ref={flow.registerRef("pagtNome") as React.Ref<HTMLInputElement>}

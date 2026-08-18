@@ -4,6 +4,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { centavosToDisplay } from "@/lib/utils/currency";
 import { isoDateToBr } from "@/lib/utils/date";
+import { labelFormaPagamento } from "@/lib/utils/formaPagamento";
 import type { Venda } from "@/types";
 
 interface VendaLinhaVendaProps {
@@ -13,12 +14,6 @@ interface VendaLinhaVendaProps {
   onAdicionarNumero: (venda: Venda) => void;
   mostrarData?: boolean;
 }
-
-const LABEL_TIPO: Record<Venda["tipoPagamento"], string> = {
-  pix: "Pix",
-  deposito: "Depósito",
-  transferencia: "Transferência",
-};
 
 export default function VendaLinhaVenda({
   venda,
@@ -43,23 +38,23 @@ export default function VendaLinhaVenda({
       )}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 flex-1 min-w-0 text-sm">
-        <span className="font-semibold text-gray-900 whitespace-nowrap">
+        <span className="font-bold text-gray-950 whitespace-nowrap">
           {centavosToDisplay(venda.valorCentavos)}
         </span>
-        <span className="text-gray-700 truncate">{venda.pagtNome}</span>
+        <span className="font-semibold text-gray-700 truncate">{venda.pagtNome}</span>
         {venda.clienteNome && (
-          <span className="text-gray-500 truncate">{venda.clienteNome}</span>
+          <span className="font-semibold text-gray-700 truncate">{venda.clienteNome}</span>
         )}
         {mostrarData && (
           <span className="text-xs text-gray-400 whitespace-nowrap">{isoDateToBr(venda.data)}</span>
         )}
-        <span className="text-xs text-gray-400 uppercase whitespace-nowrap">
-          {LABEL_TIPO[venda.tipoPagamento]}
+        <span className="text-xs text-gray-950 bg-purple-300 border border-purple-950 px-2.5 py-1 uppercase whitespace-nowrap">
+          {labelFormaPagamento(venda.tipoPagamento, venda.promissoria)}
         </span>
 
         {temNumero ? (
-          <span className="text-base font-bold font-mono text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded whitespace-nowrap">
-            Nº {venda.vendaConsig}
+          <span className="text-base font-bold font-mono text-red-600 bg-gray-100 border px-2.5 py-1 uppercase whitespace-nowrap">
+            N° Venda: {venda.vendaConsig}
           </span>
         ) : (
           <Button
@@ -76,11 +71,11 @@ export default function VendaLinhaVenda({
             Baixada
           </span>
         ) : venda.fechada ? (
-          <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded whitespace-nowrap">
+          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded whitespace-nowrap ml-auto">
             Fechada
           </span>
         ) : (
-          <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded whitespace-nowrap ml-auto">
+          <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded whitespace-nowrap ml-auto">
             Aberta
           </span>
         )}

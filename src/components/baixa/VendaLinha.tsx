@@ -3,6 +3,7 @@
 import Checkbox from "@/components/ui/Checkbox";
 import { centavosToDisplay } from "@/lib/utils/currency";
 import { isoDateToBr } from "@/lib/utils/date";
+import { labelFormaPagamento } from "@/lib/utils/formaPagamento";
 import type { Venda } from "@/types";
 
 interface VendaLinhaProps {
@@ -13,12 +14,6 @@ interface VendaLinhaProps {
   // mostramos a data na própria linha.
   mostrarData?: boolean;
 }
-
-const LABEL_TIPO: Record<Venda["tipoPagamento"], string> = {
-  pix: "Pix",
-  deposito: "Depósito",
-  transferencia: "Transferência",
-};
 
 export default function VendaLinha({ venda, selecionada, onToggle, mostrarData }: VendaLinhaProps) {
   return (
@@ -32,22 +27,22 @@ export default function VendaLinha({ venda, selecionada, onToggle, mostrarData }
       {/* flex-wrap garante o fallback: se não couber na linha, quebra para a próxima */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 flex-1 min-w-0 text-sm">
         {venda.vendaConsig && (
-          <span className="text-base font-bold font-mono text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded whitespace-nowrap">
+          <span className="text-base font-bold font-mono  text-red-600 bg-gray-100 border px-2.5 py-1 uppercase whitespace-nowrap">
             Nº {venda.vendaConsig}
           </span>
         )}
-        <span className="font-semibold text-gray-900 whitespace-nowrap">
+        <span className="font-bold text-gray-950 whitespace-nowrap">
           {centavosToDisplay(venda.valorCentavos)}
         </span>
-        <span className="text-gray-800 truncate">{venda.pagtNome}</span>
+        <span className="font-semibold text-gray-700 truncate">{venda.pagtNome}</span>
         {venda.clienteNome && (
-          <span className="text-gray-800 truncate">{venda.clienteNome}</span>
+          <span className="font-semibold text-gray-700 truncate">{venda.clienteNome}</span>
         )}
         {mostrarData && (
           <span className="text-xs text-gray-400 whitespace-nowrap">{isoDateToBr(venda.data)}</span>
         )}
-        <span className="text-xs text-gray-400 uppercase whitespace-nowrap ml-auto">
-          {LABEL_TIPO[venda.tipoPagamento]}
+        <span className="text-xs text-gray-950 bg-purple-300 border border-purple-950 px-2.5 py-1 uppercase whitespace-nowrap ml-auto">
+          {labelFormaPagamento(venda.tipoPagamento, venda.promissoria)}
         </span>
       </div>
     </div>

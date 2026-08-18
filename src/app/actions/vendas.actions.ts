@@ -55,6 +55,7 @@ export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ 
 
     const parsed = novaVendaSchema.safeParse({
       tipoPagamento: input.tipoPagamento,
+      promissoria: input.promissoria ?? false,
       pagtNome: input.pagtNome,
       clienteNome: input.clienteNome ?? "",
       data: input.data,
@@ -98,6 +99,7 @@ export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ 
 
     const novoDoc = await db.collection(COLLECTIONS.VENDAS).add({
       tipoPagamento: dados.tipoPagamento,
+      promissoria: dados.promissoria,
       pagtNome: dados.pagtNome.trim(),
       pagtNomeId: pagtResultado.data.id,
       clienteNome: clienteNomeFinal,
@@ -162,6 +164,7 @@ export async function listarVendas(
       return {
         id: doc.id,
         tipoPagamento: data.tipoPagamento,
+        promissoria: data.promissoria ?? false,
         pagtNome: data.pagtNome,
         pagtNomeId: data.pagtNomeId ?? null,
         clienteNome: data.clienteNome ?? null,
