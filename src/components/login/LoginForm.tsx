@@ -22,7 +22,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-4 w-full max-w-sm">
+    <form action={handleSubmit} className="flex flex-col gap-4 w-full max-w-md">
       <TextInput label="Usuário" name="usuario" type="text" autoComplete="username" required />
       <TextInput
         label="Senha"

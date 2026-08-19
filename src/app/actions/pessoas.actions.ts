@@ -1,17 +1,17 @@
 "use server";
 
 import { db, COLLECTIONS } from "@/lib/firebase/admin";
-import { obterSessaoAtual } from "@/lib/auth/session";
+import { exigirSessao, SessaoExpiradaError } from "@/lib/auth/exigirSessao";
 import { normalizeForSearch, prefixRangeEnd } from "@/lib/utils/firestoreQueries";
 import type { ActionResult, Pessoa } from "@/types";
 
 const MAX_RESULTADOS_AUTOCOMPLETE = 8;
 
-async function exigirSessao(): Promise<void> {
-  const sessao = await obterSessaoAtual();
-  if (!sessao) {
-    throw new Error("Sessão inválida ou expirada.");
+function tratarSessaoExpirada(error: unknown): ActionResult<never> | null {
+  if (error instanceof SessaoExpiradaError) {
+    return { ok: false, code: "SESSAO_EXPIRADA", message: error.message };
   }
+  return null;
 }
 
 /**
@@ -48,6 +48,9 @@ export async function buscarPessoasPorPrefixo(
 
     return { ok: true, data: pessoas };
   } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
     console.error("Erro ao buscar pessoas:", error);
     return { ok: false, message: "Não foi possível buscar nomes agora." };
   }
@@ -90,6 +93,9 @@ export async function salvarPessoaSeNova(nomeBruto: string): Promise<ActionResul
 
     return { ok: true, data: { id: novoDoc.id } };
   } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
     console.error("Erro ao salvar pessoa:", error);
     return { ok: false, message: "Não foi possível salvar o nome." };
   }

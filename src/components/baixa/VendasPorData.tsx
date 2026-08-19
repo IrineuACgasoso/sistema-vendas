@@ -1,6 +1,7 @@
 "use client";
 
 import VendaLinha from "./VendaLinha";
+import VendaLinhaHeader from "./VendaLinhaHeader";
 import { isoDateToBr } from "@/lib/utils/date";
 import type { OrdenarPor } from "./FiltrosBaixa";
 import type { Venda } from "@/types";
@@ -18,15 +19,19 @@ interface VendasPorDataProps {
 export default function VendasPorData({ vendas, selecionadas, onToggle, ordenarPor }: VendasPorDataProps) {
   if (vendas.length === 0) {
     return (
-      <p className="text-center text-sm text-gray-500 py-8">
-        Nenhuma venda encontrada com os filtros atuais.
-      </p>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <VendaLinhaHeader mostrarData={ordenarPor === "numero"} />
+        <p className="text-center text-sm text-gray-500 py-8">
+          Nenhuma venda encontrada com os filtros atuais.
+        </p>
+      </div>
     );
   }
 
   if (ordenarPor === "numero") {
     return (
-      <section className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <section className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
+        <VendaLinhaHeader mostrarData />
         {vendas.map((venda) => (
           <VendaLinha
             key={venda.id}
@@ -50,9 +55,13 @@ export default function VendasPorData({ vendas, selecionadas, onToggle, ordenarP
 
   return (
     <div className="flex flex-col gap-4">
+      <VendaLinhaHeader />
       {Array.from(grupos.entries()).map(([dataIso, vendasDoDia]) => (
-        <section key={dataIso} className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <header className="px-3 py-2 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+        <section
+          key={dataIso}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto"
+        >
+          <header className="px-3 py-2 bg-gray-100 border-b border-gray-200 rounded-t-lg">
             <h3 className="text-sm font-semibold text-gray-700">{isoDateToBr(dataIso)}</h3>
           </header>
           <div>

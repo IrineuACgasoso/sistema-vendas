@@ -30,6 +30,7 @@ export const filtrosBaixaSchema = z.object({
   dataFim: z.string().optional(),
   nome: z.string().trim().max(200).optional(),
   tipoPagamento: tipoPagamentoSchema.optional(),
+  promissoria: z.boolean().optional(),
 });
 
 export const darBaixaSchema = z.object({
@@ -46,9 +47,27 @@ export const adicionarNumeroVendaSchema = z.object({
   vendaConsig: z.string().trim().min(1, "Informe o número da venda").max(100),
 });
 
+export const editarVendaSchema = z.object({
+  vendaId: z.string().min(1),
+  pagtNome: z.string().trim().min(1, "Informe o nome do pagante").max(200),
+  vendaConsig: z.string().trim().max(100).optional().or(z.literal("")),
+  valorCentavos: z
+    .number()
+    .int("Valor inválido")
+    .min(1, "Informe um valor maior que zero")
+    .max(100_000_000_00, "Valor excede o limite permitido"),
+});
+
+export const excluirVendasSchema = z.object({
+  vendaIds: z.array(z.string().min(1)).min(1, "Selecione ao menos uma venda"),
+  senhaConfirmacao: z.string().min(1, "Senha obrigatória para confirmar"),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type NovaVendaFormInput = z.infer<typeof novaVendaSchema>;
 export type FiltrosBaixaFormInput = z.infer<typeof filtrosBaixaSchema>;
 export type DarBaixaInput = z.infer<typeof darBaixaSchema>;
 export type FecharVendasInput = z.infer<typeof fecharVendasSchema>;
 export type AdicionarNumeroVendaInput = z.infer<typeof adicionarNumeroVendaSchema>;
+export type EditarVendaInput = z.infer<typeof editarVendaSchema>;
+export type ExcluirVendasInput = z.infer<typeof excluirVendasSchema>;

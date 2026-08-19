@@ -10,8 +10,9 @@ import CurrencyInput from "@/components/ui/CurrencyInput";
 import Button from "@/components/ui/Button";
 import BackToMenuButton from "@/components/ui/BackToMenuButton";
 import { useEnterFlow } from "@/hooks/useEnterFlow";
+import { useSessaoExpirada } from "@/hooks/useSessaoExpirada";
 import { criarVenda } from "@/app/actions/vendas.actions";
-import { isValidBrDate, todayBr } from "@/lib/utils/date";
+import { isValidBrDate } from "@/lib/utils/date";
 import type { TipoPagamento } from "@/types";
 
 const CAMPOS_ORDEM = ["pagtNome", "cliente", "data", "vendaConsig", "valor"];
@@ -21,7 +22,7 @@ const ESTADO_INICIAL = {
   promissoria: false,
   pagtNome: "",
   clienteNome: "",
-  data: todayBr(),
+  data: "",
   vendaConsig: "",
   valorCentavos: 0,
 };
@@ -33,14 +34,15 @@ export default function CadastroForm() {
   const [isPending, startTransition] = useTransition();
 
   const flow = useEnterFlow(CAMPOS_ORDEM);
+  const { verificarSessao } = useSessaoExpirada();
 
   function resetarParaNovaVenda() {
-    // Mantém tipoPagamento e data (comportamento comum: continuar registrando no mesmo dia)
+    // Mantém tipoPagamento, mas a data sempre volta em branco — evita
+    // reaproveitar sem querer a data da venda anterior.
     setForm((prev) => ({
       ...ESTADO_INICIAL,
       tipoPagamento: prev.tipoPagamento,
       promissoria: prev.promissoria,
-      data: prev.data,
     }));
     setTimeout(() => flow.focarCampo("pagtNome"), 0);
   }
@@ -77,6 +79,7 @@ export default function CadastroForm() {
       });
 
       if (!resultado.ok) {
+        if (verificarSessao(resultado)) return;
         setErro(resultado.message ?? "Erro ao salvar a venda.");
         return;
       }
@@ -89,25 +92,23 @@ export default function CadastroForm() {
   flow.onComplete(handleSalvar);
 
   return (
-    <div className="relative bg-white rounded-lg shadow-md p-8 w-full max-w-md">
+    <div className="relative bg-white rounded-lg shadow-md p-8 w-full max-w-lg">
       <BackToMenuButton />
 
       <h2 className="text-lg font-semibold mb-6 text-center">Cadastro de Venda</h2>
 
       <div className="flex flex-col gap-4">
-        <div className="flex items-end gap-4">
-          <div className="w-36 flex-shrink-0">
+        <div className="flex flex-col gap-3 items-center">
+          <div className="w-40">
             <PromissoriaSelect
               value={form.promissoria}
               onChange={(v) => setForm((prev) => ({ ...prev, promissoria: v }))}
             />
           </div>
-          <div className="flex-1">
-            <TipoPagamentoRadio
-              value={form.tipoPagamento}
-              onChange={(v) => setForm((prev) => ({ ...prev, tipoPagamento: v }))}
-            />
-          </div>
+          <TipoPagamentoRadio
+            value={form.tipoPagamento}
+            onChange={(v) => setForm((prev) => ({ ...prev, tipoPagamento: v }))}
+          />
         </div>
 
         <NomeAutocomplete

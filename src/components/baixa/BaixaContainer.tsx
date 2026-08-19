@@ -12,6 +12,7 @@ import { confirmarSenhaAtual } from "@/app/actions/auth.actions";
 import { brDateToIso, isValidBrDate } from "@/lib/utils/date";
 import { centavosToDisplay } from "@/lib/utils/currency";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useSessaoExpirada } from "@/hooks/useSessaoExpirada";
 import { ordenarVendas } from "@/lib/utils/ordenarVendas";
 import type { Venda } from "@/types";
 
@@ -33,6 +34,7 @@ export default function BaixaContainer() {
   const [modalAberto, setModalAberto] = useState(false);
 
   const nomeDebounced = useDebouncedValue(filtros.nome, 300);
+  const { verificarSessao } = useSessaoExpirada();
 
   const carregarVendas = useCallback(async () => {
     setErro(null);
@@ -53,11 +55,17 @@ export default function BaixaContainer() {
         dataInicio,
         dataFim,
         nome: nomeDebounced || undefined,
-        tipoPagamento: filtros.tipoPagamento || undefined,
+        tipoPagamento:
+          filtros.tipoPagamento === "" || filtros.tipoPagamento === "promissoria"
+            ? undefined
+            : filtros.tipoPagamento,
+        promissoria: filtros.tipoPagamento === "promissoria" ? true : undefined,
       },
       "baixa"
     );
     setCarregando(false);
+
+    if (verificarSessao(resultado)) return;
 
     if (!resultado.ok || !resultado.data) {
       setErro(resultado.message ?? "Erro ao carregar vendas.");
@@ -74,7 +82,13 @@ export default function BaixaContainer() {
       });
       return novo;
     });
-  }, [filtros.dataInicioBr, filtros.dataFimBr, filtros.tipoPagamento, nomeDebounced]);
+  }, [
+    filtros.dataInicioBr,
+    filtros.dataFimBr,
+    filtros.tipoPagamento,
+    nomeDebounced,
+    verificarSessao,
+  ]);
 
   useEffect(() => {
     carregarVendas();
@@ -118,6 +132,7 @@ export default function BaixaContainer() {
     }
 
     const resultado = await darBaixa(Array.from(selecionadas), senha);
+    if (verificarSessao(resultado)) return { ok: true }; // já redirecionando; evita mostrar erro
     if (!resultado.ok) {
       return { ok: false, message: resultado.message };
     }
@@ -129,10 +144,10 @@ export default function BaixaContainer() {
   }
 
   return (
-    <div className="relative max-w-3xl mx-auto flex flex-col gap-4 pb-4">
-      <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-3">
+    <div className="relative max-w-5xl mx-auto flex flex-col gap-3 pb-3">
+      <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 px-5 py-3">
         <BackToMenuButton />
-        <h2 className="text-lg font-semibold pr-24">Dar Baixa em Vendas</h2>
+        <h2 className="text-xl font-semibold pr-24">Dar Baixa em Vendas</h2>
       </div>
 
       <FiltrosBaixa filtros={filtros} onChange={setFiltros} />

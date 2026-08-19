@@ -1,13 +1,15 @@
 "use server";
 
 import { db, COLLECTIONS } from "@/lib/firebase/admin";
-import { obterSessaoAtual } from "@/lib/auth/session";
+import { exigirSessao, SessaoExpiradaError } from "@/lib/auth/exigirSessao";
 import {
   novaVendaSchema,
   filtrosBaixaSchema,
   darBaixaSchema,
   fecharVendasSchema,
   adicionarNumeroVendaSchema,
+  editarVendaSchema,
+  excluirVendasSchema,
 } from "@/lib/validation/schemas";
 import { verificarSenha } from "@/lib/auth/password";
 import { brDateToIso } from "@/lib/utils/date";
@@ -21,12 +23,18 @@ import type {
 } from "@/types";
 import type { Query, DocumentData } from "firebase-admin/firestore";
 
-async function exigirSessao(): Promise<void> {
-  const sessao = await obterSessaoAtual();
-  if (!sessao) {
-    throw new Error("Sessão inválida ou expirada.");
+/**
+ * Devolve o ActionResult padrão de sessão expirada quando o erro capturado
+ * for SessaoExpiradaError; caso contrário devolve null (o chamador segue
+ * com sua mensagem de erro específica).
+ */
+function tratarSessaoExpirada(error: unknown): ActionResult<never> | null {
+  if (error instanceof SessaoExpiradaError) {
+    return { ok: false, code: "SESSAO_EXPIRADA", message: error.message };
   }
+  return null;
 }
+
 
 /**
  * Garante que nenhuma outra venda já use o mesmo número (vendaConsig).
@@ -116,6 +124,9 @@ export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ 
 
     return { ok: true, data: { id: novoDoc.id } };
   } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
     console.error("Erro ao criar venda:", error);
     return { ok: false, message: "Não foi possível salvar a venda." };
   }
@@ -193,8 +204,17 @@ export async function listarVendas(
       );
     }
 
+    // Promissória é independente do tipoPagamento, então também filtramos em
+    // memória — mantém o mesmo trade-off do filtro de nome acima.
+    if (f.promissoria !== undefined) {
+      vendas = vendas.filter((v) => v.promissoria === f.promissoria);
+    }
+
     return { ok: true, data: vendas };
   } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
     console.error("Erro ao listar vendas:", error);
     return { ok: false, message: "Não foi possível carregar as vendas." };
   }
@@ -245,6 +265,9 @@ export async function darBaixa(
 
     return { ok: true, message: `${parsed.data.vendaIds.length} venda(s) baixada(s) e removida(s) com sucesso.` };
   } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
     console.error("Erro ao dar baixa:", error);
     return { ok: false, message: "Não foi possível concluir a baixa." };
   }
@@ -275,7 +298,8 @@ export async function fecharVendas(vendaIds: string[]): Promise<ActionResult> {
         return { ok: false, message: "Uma das vendas selecionadas não existe mais." };
       }
       const data = snap.data()!;
-      if (!data.vendaConsig || !String(data.vendaConsig).trim()) {
+      const ehPromissoria = data.promissoria === true;
+      if (!ehPromissoria && (!data.vendaConsig || !String(data.vendaConsig).trim())) {
         return {
           ok: false,
           message: `A venda de ${data.pagtNome} ainda não tem número de venda. Adicione o número antes de fechar.`,
@@ -303,6 +327,9 @@ export async function fecharVendas(vendaIds: string[]): Promise<ActionResult> {
       message: `${parsed.data.vendaIds.length} venda(s) fechada(s) com sucesso. Já estão disponíveis para Baixa.`,
     };
   } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
     console.error("Erro ao fechar vendas:", error);
     return { ok: false, message: "Não foi possível fechar as vendas selecionadas." };
   }
@@ -346,7 +373,112 @@ export async function adicionarNumeroVenda(
 
     return { ok: true, message: "Número da venda adicionado com sucesso." };
   } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
     console.error("Erro ao adicionar número da venda:", error);
     return { ok: false, message: "Não foi possível adicionar o número da venda." };
+  }
+}
+
+/**
+ * Edita nome do pagante, valor e número de uma venda já existente (usado na
+ * tela de Vendas, modo "Editar"). Só permitido enquanto a venda ainda não
+ * foi fechada.
+ */
+export async function atualizarVenda(
+  vendaId: string,
+  input: { pagtNome: string; vendaConsig: string; valorCentavos: number }
+): Promise<ActionResult> {
+  try {
+    await exigirSessao();
+
+    const parsed = editarVendaSchema.safeParse({ vendaId, ...input });
+    if (!parsed.success) {
+      const primeiroErro = parsed.error.issues[0]?.message ?? "Dados inválidos.";
+      return { ok: false, message: primeiroErro };
+    }
+
+    const ref = db.collection(COLLECTIONS.VENDAS).doc(parsed.data.vendaId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      return { ok: false, message: "Venda não encontrada." };
+    }
+    const data = snap.data()!;
+    if (data.fechada === true) {
+      return { ok: false, message: "Esta venda já está fechada e não pode ser editada." };
+    }
+
+    const numero = parsed.data.vendaConsig?.trim() ?? "";
+    if (numero && (await existeVendaComMesmoNumero(numero, parsed.data.vendaId))) {
+      return { ok: false, message: `Já existe uma venda com o número "${numero}".` };
+    }
+
+    await ref.update({
+      pagtNome: parsed.data.pagtNome,
+      vendaConsig: numero || null,
+      valorCentavos: parsed.data.valorCentavos,
+    });
+
+    return { ok: true, message: "Venda atualizada com sucesso." };
+  } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
+    console.error("Erro ao editar venda:", error);
+    return { ok: false, message: "Não foi possível editar a venda." };
+  }
+}
+
+/**
+ * Apaga definitivamente as vendas selecionadas (tela de Vendas, modo
+ * "Excluir"). Diferente de darBaixa: isso não representa nenhuma baixa
+ * financeira, é a remoção de um lançamento incorreto/duplicado. Por isso
+ * também exige reautenticação por senha.
+ */
+export async function excluirVendas(
+  vendaIds: string[],
+  senhaConfirmacao: string
+): Promise<ActionResult> {
+  try {
+    await exigirSessao();
+
+    const parsed = excluirVendasSchema.safeParse({ vendaIds, senhaConfirmacao });
+    if (!parsed.success) {
+      const primeiroErro = parsed.error.issues[0]?.message ?? "Dados inválidos.";
+      return { ok: false, message: primeiroErro };
+    }
+
+    const hashEsperado = process.env.AUTH_PASSWORD_HASH;
+    if (!hashEsperado) {
+      console.error("AUTH_PASSWORD_HASH não configurado.");
+      return { ok: false, message: "Erro interno de configuração." };
+    }
+    const senhaCorreta = await verificarSenha(parsed.data.senhaConfirmacao, hashEsperado);
+    if (!senhaCorreta) {
+      return { ok: false, message: "Senha incorreta. Exclusão cancelada." };
+    }
+
+    const LIMITE_LOTE = 400;
+    if (parsed.data.vendaIds.length > LIMITE_LOTE) {
+      return { ok: false, message: `Selecione no máximo ${LIMITE_LOTE} vendas por vez.` };
+    }
+
+    const batch = db.batch();
+    for (const id of parsed.data.vendaIds) {
+      batch.delete(db.collection(COLLECTIONS.VENDAS).doc(id));
+    }
+    await batch.commit();
+
+    return {
+      ok: true,
+      message: `${parsed.data.vendaIds.length} venda(s) excluída(s) permanentemente.`,
+    };
+  } catch (error) {
+    const sessaoExpirada = tratarSessaoExpirada(error);
+    if (sessaoExpirada) return sessaoExpirada;
+
+    console.error("Erro ao excluir vendas:", error);
+    return { ok: false, message: "Não foi possível excluir as vendas selecionadas." };
   }
 }

@@ -12,7 +12,7 @@ export interface FiltrosState {
   dataInicioBr: string;
   dataFimBr: string;
   nome: string;
-  tipoPagamento: TipoPagamento | "";
+  tipoPagamento: TipoPagamento | "promissoria" | "";
   ordenarPor: OrdenarPor;
   ordenarDirecao: OrdenarDirecao;
 }
@@ -29,7 +29,7 @@ export default function FiltrosBaixa({ filtros, onChange }: FiltrosBaixaProps) {
   const flow = useEnterFlow(CAMPOS_ORDEM);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-wrap gap-3 items-end">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-wrap gap-4 items-end text-base">
       <DateInput
         ref={flow.registerRef("dataInicio") as React.Ref<HTMLInputElement>}
         label="Data início"
@@ -62,7 +62,10 @@ export default function FiltrosBaixa({ filtros, onChange }: FiltrosBaixaProps) {
           ref={flow.registerRef("tipo") as React.Ref<HTMLSelectElement>}
           value={filtros.tipoPagamento}
           onChange={(e) =>
-            onChange({ ...filtros, tipoPagamento: e.target.value as TipoPagamento | "" })
+            onChange({
+              ...filtros,
+              tipoPagamento: e.target.value as FiltrosState["tipoPagamento"],
+            })
           }
           onKeyDown={flow.handleKeyDown("tipo")}
           className="border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
@@ -71,6 +74,7 @@ export default function FiltrosBaixa({ filtros, onChange }: FiltrosBaixaProps) {
           <option value="pix">Pix</option>
           <option value="deposito">Depósito</option>
           <option value="transferencia">Transferência</option>
+          <option value="promissoria">Promissórias</option>
         </select>
       </div>
 

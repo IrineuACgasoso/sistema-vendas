@@ -45,6 +45,7 @@ export interface FiltrosBaixaInput {
   dataFim?: string; // yyyy-mm-dd
   nome?: string;
   tipoPagamento?: TipoPagamento;
+  promissoria?: boolean; // undefined = todas; true = só promissórias; false = só não-promissórias
 }
 
 export interface SessionPayload {
@@ -56,5 +57,6 @@ export interface SessionPayload {
 export interface ActionResult<T = undefined> {
   ok: boolean;
   message?: string;
+  code?: "SESSAO_EXPIRADA";
   data?: T;
 }

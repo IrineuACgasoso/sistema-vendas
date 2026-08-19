@@ -25,7 +25,7 @@ export default function MenuSelector() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-8 w-full max-w-sm flex flex-col gap-6">
+    <div className="bg-white rounded-lg shadow-md p-8 w-full max-w-md flex flex-col gap-6">
       <h2 className="text-lg font-semibold text-center">O que deseja fazer?</h2>
 
       <div className="flex flex-col gap-3">

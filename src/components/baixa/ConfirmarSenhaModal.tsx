@@ -11,6 +11,9 @@ interface ConfirmarSenhaModalProps {
   totalFormatado: string;
   onCancelar: () => void;
   onConfirmar: (senha: string) => Promise<{ ok: boolean; message?: string }>;
+  titulo?: string;
+  mensagem?: React.ReactNode;
+  confirmarLabel?: string;
 }
 
 export default function ConfirmarSenhaModal({
@@ -19,6 +22,9 @@ export default function ConfirmarSenhaModal({
   totalFormatado,
   onCancelar,
   onConfirmar,
+  titulo = "Confirmar baixa",
+  mensagem,
+  confirmarLabel = "Confirmar baixa",
 }: ConfirmarSenhaModalProps) {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
@@ -47,12 +53,16 @@ export default function ConfirmarSenhaModal({
   }
 
   return (
-    <Modal open={open} onClose={handleFechar} title="Confirmar baixa">
+    <Modal open={open} onClose={handleFechar} title={titulo}>
       <div className="flex flex-col gap-4">
         <p className="text-sm text-gray-700">
-          Você está prestes a dar baixa em{" "}
-          <strong>{quantidadeSelecionados} venda(s)</strong>, totalizando{" "}
-          <strong>{totalFormatado}</strong>. Esta ação não pode ser desfeita.
+          {mensagem ?? (
+            <>
+              Você está prestes a dar baixa em{" "}
+              <strong>{quantidadeSelecionados} venda(s)</strong>, totalizando{" "}
+              <strong>{totalFormatado}</strong>. Esta ação não pode ser desfeita.
+            </>
+          )}
         </p>
 
         <TextInput
@@ -73,7 +83,7 @@ export default function ConfirmarSenhaModal({
             Cancelar
           </Button>
           <Button variant="danger" onClick={handleConfirmar} loading={isPending}>
-            Confirmar baixa
+            {confirmarLabel}
           </Button>
         </div>
       </div>
