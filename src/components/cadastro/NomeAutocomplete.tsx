@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { buscarPessoasPorPrefixo } from "@/app/actions/pessoas.actions";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { capitalizarPalavras } from "@/lib/utils/texto";
 import type { Pessoa } from "@/types";
 
 interface NomeAutocompleteProps {
@@ -87,7 +88,7 @@ const NomeAutocomplete = forwardRef<HTMLInputElement, NomeAutocompleteProps>(
             indiceDestacado >= 0 ? `sugestao-${sugestoes[indiceDestacado]?.id}` : undefined
           }
           onChange={(e) => {
-            onChange(e.target.value);
+            onChange(capitalizarPalavras(e.target.value));
             setMostrarSugestoes(true);
           }}
           onFocus={() => setMostrarSugestoes(true)}

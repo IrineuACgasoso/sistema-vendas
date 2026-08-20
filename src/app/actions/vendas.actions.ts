@@ -36,27 +36,6 @@ function tratarSessaoExpirada(error: unknown): ActionResult<never> | null {
 }
 
 
-/**
- * Garante que nenhuma outra venda já use o mesmo número (vendaConsig).
- * `ignorarVendaId` permite reaplicar a mesma checagem numa venda já existente
- * (ex: reenviar o mesmo número que ela já tinha) sem falso-positivo.
- */
-async function existeVendaComMesmoNumero(
-  vendaConsig: string,
-  ignorarVendaId?: string
-): Promise<boolean> {
-  const numero = vendaConsig.trim();
-  if (!numero) return false;
-
-  const snapshot = await db
-    .collection(COLLECTIONS.VENDAS)
-    .where("vendaConsig", "==", numero)
-    .limit(5)
-    .get();
-
-  return snapshot.docs.some((doc) => doc.id !== ignorarVendaId);
-}
-
 export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ id: string }>> {
   try {
     await exigirSessao();
@@ -79,14 +58,8 @@ export async function criarVenda(input: NovaVendaInput): Promise<ActionResult<{ 
     const dados = parsed.data;
     const dataIso = brDateToIso(dados.data);
 
-    if (dados.vendaConsig && dados.vendaConsig.trim()) {
-      if (await existeVendaComMesmoNumero(dados.vendaConsig)) {
-        return {
-          ok: false,
-          message: `Já existe uma venda com o número "${dados.vendaConsig.trim()}".`,
-        };
-      }
-    }
+    // Números de venda (vendaConsig) repetidos são permitidos de propósito:
+    // clientes que parcelam Pix geram várias vendas com o mesmo número.
 
     // Salva/recupera pagante (obrigatório)
     const pagtResultado = await salvarPessoaSeNova(dados.pagtNome);
@@ -207,7 +180,12 @@ export async function listarVendas(
     // Promissória é independente do tipoPagamento, então também filtramos em
     // memória — mantém o mesmo trade-off do filtro de nome acima.
     if (f.promissoria !== undefined) {
+      // Filtro explícito de "Promissórias": mostra todas, de qualquer forma de pagamento.
       vendas = vendas.filter((v) => v.promissoria === f.promissoria);
+    } else if (f.tipoPagamento) {
+      // Filtro por forma de pagamento específica (Pix/Depósito/Transferência)
+      // não deve misturar promissórias — essas só aparecem no filtro "Promissórias".
+      vendas = vendas.filter((v) => !v.promissoria);
     }
 
     return { ok: true, data: vendas };
@@ -362,13 +340,7 @@ export async function adicionarNumeroVenda(
       return { ok: false, message: "Esta venda já está fechada e não pode ser alterada." };
     }
 
-    if (await existeVendaComMesmoNumero(parsed.data.vendaConsig, parsed.data.vendaId)) {
-      return {
-        ok: false,
-        message: `Já existe uma venda com o número "${parsed.data.vendaConsig}".`,
-      };
-    }
-
+    // Números repetidos são permitidos (ver criarVenda).
     await ref.update({ vendaConsig: parsed.data.vendaConsig });
 
     return { ok: true, message: "Número da venda adicionado com sucesso." };
@@ -410,9 +382,7 @@ export async function atualizarVenda(
     }
 
     const numero = parsed.data.vendaConsig?.trim() ?? "";
-    if (numero && (await existeVendaComMesmoNumero(numero, parsed.data.vendaId))) {
-      return { ok: false, message: `Já existe uma venda com o número "${numero}".` };
-    }
+    // Números repetidos são permitidos (ver criarVenda).
 
     await ref.update({
       pagtNome: parsed.data.pagtNome,

@@ -52,7 +52,7 @@ export default function VendasContainer() {
   const nomeDebounced = useDebouncedValue(filtros.nome, 300);
   const { verificarSessao } = useSessaoExpirada();
 
-  const carregarVendas = useCallback(async () => {
+  const carregarVendas = useCallback(async (opts?: { silencioso?: boolean }) => {
     setErro(null);
 
     const dataInicio =
@@ -64,7 +64,7 @@ export default function VendasContainer() {
         ? brDateToIso(filtros.dataFimBr)
         : undefined;
 
-    setCarregando(true);
+    if (!opts?.silencioso) setCarregando(true);
     const resultado = await listarVendas(
       {
         dataInicio,
@@ -78,7 +78,7 @@ export default function VendasContainer() {
       },
       "vendas"
     );
-    setCarregando(false);
+    if (!opts?.silencioso) setCarregando(false);
 
     if (verificarSessao(resultado)) return;
 
@@ -108,6 +108,18 @@ export default function VendasContainer() {
     carregarVendas();
   }, [carregarVendas]);
 
+  // Sincronização automática: se outra aba/pop-up cadastrar uma venda,
+  // essa tela pega a mudança sozinha, sem precisar de F5. Só faz polling
+  // silencioso (sem o spinner de carregamento) e evita rodar enquanto o
+  // usuário está editando/selecionando algo, pra não atrapalhar.
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      if (modoEdicao || modoExclusao || document.hidden) return;
+      carregarVendas({ silencioso: true });
+    }, 5000);
+    return () => clearInterval(intervalo);
+  }, [carregarVendas, modoEdicao, modoExclusao]);
+
   function handleToggleVenda(id: string, checked: boolean) {
     setSelecionadas((prev) => {
       const novo = new Set(prev);
@@ -115,6 +127,19 @@ export default function VendasContainer() {
       else novo.delete(id);
       return novo;
     });
+  }
+
+  // Vendas que podem ser fechadas: têm número (ou são promissória) e ainda
+  // não estão fechadas — mesma regra usada pra liberar o checkbox de cada linha.
+  const idsFechaveis = useMemo(
+    () => vendas.filter((v) => (!!v.vendaConsig || v.promissoria) && !v.fechada).map((v) => v.id),
+    [vendas]
+  );
+  const todasFechaveisSelecionadas =
+    idsFechaveis.length > 0 && idsFechaveis.every((id) => selecionadas.has(id));
+
+  function handleToggleSelecionarTodas() {
+    setSelecionadas(todasFechaveisSelecionadas ? new Set() : new Set(idsFechaveis));
   }
 
   const totalSelecionadoCentavos = useMemo(() => {
@@ -307,6 +332,18 @@ export default function VendasContainer() {
       )}
 
       <FiltrosBaixa filtros={filtros} onChange={setFiltros} />
+
+      {!modoEdicao && !modoExclusao && idsFechaveis.length > 0 && (
+        <button
+          type="button"
+          onClick={handleToggleSelecionarTodas}
+          className="self-start text-xs font-medium text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md px-3 py-1.5 transition-colors"
+        >
+          {todasFechaveisSelecionadas
+            ? "Desmarcar todas"
+            : `Selecionar todas (${idsFechaveis.length})`}
+        </button>
+      )}
 
       {erro && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
