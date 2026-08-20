@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FiltrosBaixa, { type FiltrosState } from "@/components/baixa/FiltrosBaixa";
 import ConfirmarSenhaModal from "@/components/baixa/ConfirmarSenhaModal";
 import VendasPorDataVenda from "./VendasPorDataVenda";
@@ -83,7 +83,13 @@ export default function VendasContainer() {
     if (verificarSessao(resultado)) return;
 
     if (!resultado.ok || !resultado.data) {
-      setErro(resultado.message ?? "Erro ao carregar vendas.");
+      const msg = resultado.message ?? "Erro ao carregar vendas.";
+      // Se a cota do Firestore estourou, não faz sentido continuar batendo
+      // no banco de 30 em 30s — desliga o polling até a próxima ação manual.
+      if (/quota|resource_exhausted/i.test(msg)) {
+        pollingAtivoRef.current = false;
+      }
+      if (!opts?.silencioso) setErro(msg);
       return;
     }
 
@@ -112,11 +118,17 @@ export default function VendasContainer() {
   // essa tela pega a mudança sozinha, sem precisar de F5. Só faz polling
   // silencioso (sem o spinner de carregamento) e evita rodar enquanto o
   // usuário está editando/selecionando algo, pra não atrapalhar.
+  //
+  // Intervalo de 30s (não 5s): cada poll é uma leitura no Firestore por
+  // aba aberta — 5s em 5s estourava a cota gratuita rápido demais. Se
+  // mesmo assim vier erro de cota (RESOURCE_EXHAUSTED), o polling para
+  // sozinho em vez de continuar martelando o banco.
+  const pollingAtivoRef = useRef(true);
   useEffect(() => {
     const intervalo = setInterval(() => {
-      if (modoEdicao || modoExclusao || document.hidden) return;
+      if (!pollingAtivoRef.current || modoEdicao || modoExclusao || document.hidden) return;
       carregarVendas({ silencioso: true });
-    }, 5000);
+    }, 120000);
     return () => clearInterval(intervalo);
   }, [carregarVendas, modoEdicao, modoExclusao]);
 
