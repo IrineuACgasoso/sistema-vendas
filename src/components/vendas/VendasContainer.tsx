@@ -128,7 +128,7 @@ export default function VendasContainer() {
     const intervalo = setInterval(() => {
       if (!pollingAtivoRef.current || modoEdicao || modoExclusao || document.hidden) return;
       carregarVendas({ silencioso: true });
-    }, 120000);
+    }, 300000);
     return () => clearInterval(intervalo);
   }, [carregarVendas, modoEdicao, modoExclusao]);
 
