@@ -179,3 +179,6 @@ Regras de negócio importantes (atuais):
 - Nomes digitados em Pagante/Cliente (NomeAutocomplete) são auto-capitalizados por palavra
   (capitalizarPalavras(), em lib/utils/texto.ts) — só a 1ª letra de cada palavra é mexida, o
   resto do texto digitado não é alterado.
+- Sempre mantenha a primeira linha de cada arquivo como um comentário com o relative path do 
+  arquivodentro do projeto, a fim de facilitar caso eu tenha de fazer mudanças pontuais no projeto.
+  

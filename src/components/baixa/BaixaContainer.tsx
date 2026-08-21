@@ -1,3 +1,4 @@
+//src/components/baixa/BaixaContainer.tsx
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -109,6 +110,14 @@ export default function BaixaContainer() {
       .reduce((soma, v) => soma + v.valorCentavos, 0);
   }, [vendas, selecionadas]);
 
+  // Na tela de Baixa todas as vendas listadas já estão fechadas, então
+  // "selecionar todas" pode marcar a lista inteira sem checagem extra.
+  const todasSelecionadas = vendas.length > 0 && vendas.every((v) => selecionadas.has(v.id));
+
+  function handleToggleSelecionarTodas() {
+    setSelecionadas(todasSelecionadas ? new Set() : new Set(vendas.map((v) => v.id)));
+  }
+
   const vendasOrdenadas = useMemo(
     () => ordenarVendas(vendas, filtros.ordenarPor, filtros.ordenarDirecao),
     [vendas, filtros.ordenarPor, filtros.ordenarDirecao]
@@ -151,6 +160,16 @@ export default function BaixaContainer() {
       </div>
 
       <FiltrosBaixa filtros={filtros} onChange={setFiltros} />
+
+      {vendas.length > 0 && (
+        <button
+          type="button"
+          onClick={handleToggleSelecionarTodas}
+          className="self-start text-xs font-medium text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md px-3 py-1.5 transition-colors"
+        >
+          {todasSelecionadas ? "Desmarcar todas" : `Selecionar todas (${vendas.length})`}
+        </button>
+      )}
 
       {erro && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">

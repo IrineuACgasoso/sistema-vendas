@@ -1,3 +1,4 @@
+//src/components/cadastro/CadastroForm.tsx
 "use client";
 
 import { useState, useTransition } from "react";
@@ -92,13 +93,13 @@ export default function CadastroForm() {
   flow.onComplete(handleSalvar);
 
   return (
-    <div className="relative bg-white rounded-lg shadow-md p-8 w-full max-w-lg">
+    <div className="relative bg-white rounded-lg shadow-md p-6 w-full max-w-lg">
       <BackToMenuButton />
 
-      <h2 className="text-lg font-semibold mb-6 text-center">Cadastro de Venda</h2>
+      <h2 className="text-lg font-semibold mb-4 text-center">Cadastro de Venda</h2>
 
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 items-center">
+        <div className="flex flex-col gap-2 items-center">
           <div className="w-40">
             <PromissoriaSelect
               value={form.promissoria}

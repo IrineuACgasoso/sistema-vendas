@@ -1,3 +1,4 @@
+//src/components/baixa/FiltrosBaixa.tsx
 "use client";
 
 import DateInput from "@/components/ui/DateInput";
@@ -74,6 +75,8 @@ export default function FiltrosBaixa({ filtros, onChange }: FiltrosBaixaProps) {
           <option value="pix">Pix</option>
           <option value="deposito">Depósito</option>
           <option value="transferencia">Transferência</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="cartao">Cartão</option>
           <option value="promissoria">Promissórias</option>
         </select>
       </div>

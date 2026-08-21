@@ -1,6 +1,13 @@
+//src/lib/validation/schemas.ts
 import { z } from "zod";
 
-export const tipoPagamentoSchema = z.enum(["pix", "deposito", "transferencia"]);
+export const tipoPagamentoSchema = z.enum([
+  "pix",
+  "deposito",
+  "transferencia",
+  "dinheiro",
+  "cartao",
+]);
 
 export const loginSchema = z.object({
   usuario: z.string().trim().min(1, "Informe o usuário").max(100),

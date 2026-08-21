@@ -1,4 +1,5 @@
-export type TipoPagamento = "pix" | "deposito" | "transferencia";
+//src/types/index.ts
+export type TipoPagamento = "pix" | "deposito" | "transferencia" | "dinheiro" | "cartao";
 
 export interface Pessoa {
   id: string;

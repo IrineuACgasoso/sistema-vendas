@@ -1,9 +1,12 @@
+//src/lib/utils/formaPagamento.ts
 import type { TipoPagamento } from "@/types";
 
 const LABEL_TIPO: Record<TipoPagamento, string> = {
   pix: "Pix",
   deposito: "Depósito",
   transferencia: "Transferência",
+  dinheiro: "Dinheiro",
+  cartao: "Cartão",
 };
 
 // Cada forma de pagamento tem uma cor própria, para reconhecimento rápido
@@ -11,7 +14,9 @@ const LABEL_TIPO: Record<TipoPagamento, string> = {
 const COR_TIPO: Record<TipoPagamento, string> = {
   pix: "bg-violet-50 text-violet-700 border-violet-200",
   deposito: "bg-sky-50 text-sky-700 border-sky-200",
-  transferencia: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  transferencia: "bg-emerald-50 text-emerald-700 border-emerald-2000",
+  dinheiro: "bg-gray-100 text-gray-700 border-gray-300",
+  cartao: "bg-orange-50 text-orange-700 border-orange-200",
 };
 
 /**
